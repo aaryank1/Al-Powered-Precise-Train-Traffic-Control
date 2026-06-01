@@ -1,0 +1,50 @@
+What is a train traffic controller ?
+    - an actual human making real time decisions based on his knowledge
+    - not sufficient today
+
+What is a Railway Section?
+    -A section is a stretch of railway track managed by a particular controller.
+    For example:
+        Mumbai ---- Thane ---- Kalyan ---- Kasara
+        One controller might manage:
+        Thane ---- Kalyan ---- Kasara
+
+What is a Block Section?
+    -This is one of the most important concepts.
+    -A railway track is divided into blocks.
+    Example:
+        A ----- B ----- C ----- D
+        Actually becomes:
+            [A-B] [B-C] [C-D]
+        Each bracket is a block.
+    Rule:
+        -Only ONE train can occupy a block at a time.
+
+What is a Loop Line?
+    -Suppose station B has extra track.
+    Main Line
+        -----------------
+    Loop Line
+        \_______/
+    Train can be parked here.
+
+What is a Crossing?
+    -Crossing occurs on a single-line section.
+    Example:
+        A ---- B ---- C
+        Express at A
+        Passenger at C
+        Both need to pass each other.
+    Solution:
+        A ---- B ---- C
+        Express arrives B
+        Passenger arrives B
+        One train enters loop line
+        Other train passes
+
+What is Headway?
+    -Headway is the minimum spacing between trains.
+    Example:
+        Train A
+            5 km
+        Train B
