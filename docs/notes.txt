@@ -1,50 +1,86 @@
-What is a train traffic controller ?
-    - an actual human making real time decisions based on his knowledge
-    - not sufficient today
+What is a train traffic controller?
+    - An actual human making real-time decisions based on experience,
+      operating rules, current delays, and infrastructure constraints.
+    - The project is trying to build decision-support logic for this role.
 
 What is a Railway Section?
-    -A section is a stretch of railway track managed by a particular controller.
-    For example:
+    - A section is a stretch of railway track managed by a particular controller.
+    Example:
         Mumbai ---- Thane ---- Kalyan ---- Kasara
         One controller might manage:
         Thane ---- Kalyan ---- Kasara
 
+What is a Tick?
+    - A tick is one simulation decision cycle.
+    - In one tick, a train may wait, enter a loop, exit a loop, move across one
+      block, or arrive at its destination.
+    - This is a simplified model of time. Later, ticks can be replaced or
+      enriched with actual minutes, dwell times, and running times.
+
 What is a Block Section?
-    -This is one of the most important concepts.
-    -A railway track is divided into blocks.
+    - This is one of the most important concepts.
+    - A railway track is divided into blocks.
     Example:
         A ----- B ----- C ----- D
         Actually becomes:
             [A-B] [B-C] [C-D]
         Each bracket is a block.
     Rule:
-        -Only ONE train can occupy a block at a time.
+        - Only ONE train can reserve a block in a tick.
+        - Two trains cannot swap across the same single-track block in opposite
+          directions during the same tick.
+
+What is Occupancy?
+    - Occupancy means which train currently owns a railway resource.
+    - In this project the resources are:
+        station main berth,
+        station loop berth,
+        block reservation for the current tick.
+    - Safety starts by asking: is the resource free before the train uses it?
 
 What is a Loop Line?
-    -Suppose station B has extra track.
-    Main Line
-        -----------------
-    Loop Line
-        \_______/
-    Train can be parked here.
+    - Suppose station B has extra track.
+        Main Line
+            -----------------
+        Loop Line
+            \_______/
+    - A train can be parked in the loop while another train passes on the main
+      line.
 
 What is a Crossing?
-    -Crossing occurs on a single-line section.
+    - Crossing occurs on a single-line section.
     Example:
         A ---- B ---- C
         Express at A
         Passenger at C
         Both need to pass each other.
     Solution:
-        A ---- B ---- C
-        Express arrives B
-        Passenger arrives B
-        One train enters loop line
-        Other train passes
+        Express and passenger meet near a loop-capable station.
+        Lower-priority train enters the loop.
+        Higher-priority train passes on the main line.
+        Lower-priority train exits the loop and continues.
 
 What is Headway?
-    -Headway is the minimum spacing between trains.
-    Example:
-        Train A
-            5 km
-        Train B
+    - Headway is the minimum safe spacing between trains.
+    - Current v1 does not yet model headway windows beyond one-block-per-tick
+      occupancy.
+    - Future versions can model time gaps between consecutive trains using the
+      same block.
+
+What is a Route?
+    - A route is the next safe action selected for a train based on the network,
+      occupancy state, and operating rules.
+    - Current actions are:
+        MOVE,
+        WAIT,
+        ENTER_LOOP,
+        EXIT_LOOP,
+        ARRIVE.
+
+What is a Conflict?
+    - A conflict happens when a desired movement is not safe because a required
+      resource is already occupied or reserved.
+    - Examples:
+        target station main line occupied,
+        block already reserved,
+        no loop available for crossing.

@@ -1,21 +1,39 @@
-from scenarios.scenario_1 import trains
+from scenarios.scenario_1 import build_trains
 
-from src.scheduler import Scheduler
-from src.simulator import Simulator
+from src.planning.scheduler import Scheduler
+from src.railway.network import default_network
+from src.simulation.simulator import Simulator
 
-scheduler = Scheduler()
 
-sim = Simulator(
-    trains,
-    scheduler
-)
+def main() -> None:
+    """Run the default scenario and print final metrics.
 
-while True:
-    active = [
-        t for t in trains
-        if not t.finished
-    ]
-    if not active:
-        break
+    Returns:
+        `None`; output is printed to the console.
+    """
 
-    sim.step()
+    scheduler = Scheduler()
+    sim = Simulator(
+        build_trains(),
+        scheduler,
+        network=default_network,
+    )
+
+    metrics = sim.run(max_ticks=50)
+
+    print("\nFINAL METRICS")
+    for train_name, train_metrics in metrics["trains"].items():
+        print(
+            f"{train_name}: "
+            f"finished={train_metrics['finished']}, "
+            f"waiting_time={train_metrics['waiting_time']}, "
+            f"completion_time={train_metrics['completion_time']}, "
+            f"loop_entries={train_metrics['loop_entries']}"
+        )
+    print(f"total_ticks={metrics['total_ticks']}")
+    print(f"conflict_count={metrics['conflict_count']}")
+    print(f"loop_usage={metrics['loop_usage']}")
+
+
+if __name__ == "__main__":
+    main()

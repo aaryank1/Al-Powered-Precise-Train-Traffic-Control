@@ -1,0 +1,6 @@
+# Core simulator, scheduler, and tests use only the Python standard library.
+#
+# These packages support the interactive walkthrough notebook.
+ipykernel>=6.29
+nbconvert>=7.16
+notebook>=7.2
