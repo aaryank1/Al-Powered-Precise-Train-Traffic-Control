@@ -5,9 +5,6 @@ def build_trains() -> list[Train]:
     """
     Create a scenario :
     Create the default express/local crossing scenario.
-
-    Returns:
-        A list of trains
     """
 
     return [

@@ -68,7 +68,7 @@ def candidate_actions(
     if train.finished:
         return [wait_action(train, "train already finished")]
 
-    if train.track == LOOP:
+    if train.line == LOOP:
         action = Action(
             train_name=train.name,
             action_type=ActionType.EXIT_LOOP,

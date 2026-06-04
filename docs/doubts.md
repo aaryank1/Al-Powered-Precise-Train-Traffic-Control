@@ -1,0 +1,5 @@
+- What is verbose that we are passing to the simulator object.
+- @dataclass(frozen=True), tf this means
+- state = cls(network), what is this cls that we pass to from_trains in occupancy.py
+- forced_loop_reasons function
+- what is the point of these empty __init__.py files inside folders

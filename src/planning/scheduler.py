@@ -87,7 +87,7 @@ class Scheduler:
         )
 
         for train in high_priority_order:
-            if train.track != "main":
+            if train.line != "main":
                 continue
 
             next_station = network.next_station_for(train)
@@ -104,13 +104,13 @@ class Scheduler:
 
             if blocker.priority >= train.priority:
                 continue
-            if blocker.track != "main":
+            if blocker.line != "main":
                 continue
             if blocker.direction() != -train.direction():
                 continue
             if not network.has_loop(next_station):
                 continue
-            if not occupancy_state.is_berth_empty(next_station, "loop"):
+            if not occupancy_state.is_line_empty(next_station, "loop"):
                 continue
 
             forced[blocker.name] = (

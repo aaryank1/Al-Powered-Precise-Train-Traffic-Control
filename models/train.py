@@ -14,7 +14,7 @@ class Train:
 
     current_station: int
     destination_station: int
-    track: str = "main"
+    line: str = "main"
 
     waiting_time: int = 0
     finished: bool = False

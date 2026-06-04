@@ -84,3 +84,21 @@ What is a Conflict?
         target station main line occupied,
         block already reserved,
         no loop available for crossing.
+
+What is a Control Chart ?
+    - A manual chart that traffic controllers use to make real time decisions 
+    - Distance stations are plotted on the Y-axis and Time (24 hours) is plotted on the X-axis. The trajectory of a train forms a diagonal line.
+
+Up main line, down main line,
+up loop line, down loop line
+
+distant signal, home signal, starter signal, adv starter
+after crossing these signals, train enters a block section
+
+switches 
+
+block instruments
+
+trains dont have gps, instead they have axle counters after every 3 or 4kms
+it counts axles and passes it to the next axle counter 
+it also sends the live location of the train

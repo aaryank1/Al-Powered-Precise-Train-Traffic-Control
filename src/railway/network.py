@@ -1,10 +1,7 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
-
 from models.station import Station
 from models.train import Train
-
 
 @dataclass(frozen=True)
 class Block:
@@ -21,7 +18,7 @@ class Block:
             A sorted pair of station indexes, for example `(2, 3)`.
         """
 
-        return tuple(sorted((self.start, self.end)))
+        return (min(self.start, self.end), max(self.start, self.end))
 
 
 class Network:
@@ -37,38 +34,22 @@ class Network:
         self.stations = stations
 
     def station_name(self, station_index: int) -> str:
-        """Return the display name for a station index.
-
-        Returns:
-            The station name string.
-        """
+        """Return the display name for a station index."""
 
         return self.stations[station_index].name
 
     def has_loop(self, station_index: int) -> bool:
-        """Return whether a station has a loop berth.
-
-        Returns:
-            `True` when the station supports loop-line holding.
-        """
+        """Return whether a station has a loop berth."""
 
         return self.stations[station_index].has_loop
 
     def is_valid_station(self, station_index: int) -> bool:
-        """Return whether the station index exists in this network.
-
-        Returns:
-            `True` if the index is inside the station list bounds.
-        """
+        """Return whether the station index exists in this network."""
 
         return 0 <= station_index < len(self.stations)
 
     def next_station_for(self, train: Train) -> int:
-        """Return the next station index on a train's path.
-
-        Returns:
-            The adjacent station index in the train's direction of travel.
-        """
+        """Return the next station index on a train's path."""
 
         return train.current_station + train.direction()
 

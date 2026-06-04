@@ -25,3 +25,9 @@ The project now models:
 
 LangGraph tools and a dashboard are future layers on top of this deterministic
 engine.
+
+## To do : 
+
+- Replace Berth by Line i.e. main berth to main line and loop berth to loop line, 
+- replace track by line too
+- future idea : train.next_station_for can incorporate slow and fast train ideas by returning a higher number in the direction.

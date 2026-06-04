@@ -1,10 +1,44 @@
 from __future__ import annotations
 
+from typing import TypedDict
+
 from models.train import Train
 from src.planning.actions import Action, ActionType, wait_action
 from src.planning.scheduler import Scheduler
 from src.railway.network import Network, default_network
 from src.railway.occupancy import OccupancyState
+
+
+class TrainMetrics(TypedDict):
+    """Metrics collected for a single train."""
+
+    finished: bool
+    waiting_time: int
+    completion_time: int | None
+    current_station: str
+    line: str
+    loop_entries: int
+
+
+class SimulationMetrics(TypedDict):
+    """Top-level simulator metrics."""
+
+    total_ticks: int
+    arrived_trains: int
+    active_trains: int
+    throughput: float
+    conflict_count: int
+    loop_usage: int
+    trains: dict[str, TrainMetrics]
+
+
+class TickHistory(TypedDict):
+    """Serializable simulator state captured after one tick."""
+
+    time: int
+    actions: list[Action]
+    occupancy: dict[str, object]
+    metrics: SimulationMetrics
 
 
 class Simulator:
@@ -14,17 +48,17 @@ class Simulator:
         self,
         trains: list[Train],
         scheduler: Scheduler,
-        network: Network | None = None,
+        network: Network,
         verbose: bool = True,
     ) -> None:
         """Create a simulator for trains, scheduler, and network."""
 
         self.trains = trains
         self.scheduler = scheduler
-        self.network = network or default_network
+        self.network = network
         self.verbose = verbose
         self.time = 0
-        self.history: list[dict[str, object]] = []
+        self.history: list[TickHistory] = []
         self.conflict_count = 0
         self.loop_usage = 0
         self.occupancy_state = OccupancyState.from_trains(self.network, self.trains)
@@ -96,7 +130,7 @@ class Simulator:
         self.time += 1
         return applied_actions
 
-    def run(self, max_ticks: int = 100) -> dict[str, object]:
+    def run(self, max_ticks: int = 100) -> SimulationMetrics:
         """Run ticks until every train arrives or a safety limit is reached.
 
         Returns:
@@ -112,7 +146,7 @@ class Simulator:
             self.step()
         return self.get_metrics()
 
-    def get_metrics(self) -> dict[str, object]:
+    def get_metrics(self) -> SimulationMetrics:
         """Return current simulator and per-train metrics.
 
         Returns:
@@ -134,7 +168,7 @@ class Simulator:
                     "waiting_time": train.waiting_time,
                     "completion_time": train.completion_time,
                     "current_station": self.network.station_name(train.current_station),
-                    "track": train.track,
+                    "line": train.line,
                     "loop_entries": train.loop_entries,
                 }
                 for train in self.trains
