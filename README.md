@@ -28,6 +28,8 @@ engine.
 
 ## To do : 
 
-- Replace Berth by Line i.e. main berth to main line and loop berth to loop line, 
-- replace track by line too
 - future idea : train.next_station_for can incorporate slow and fast train ideas by returning a higher number in the direction.
+- Implement UP/DOWN Line Concept for Stations where each platform consists of 2 lines each -> UP Main Line, UP Loop Line, Down Main Line, Down Loop Line.
+- Use Streamlit for creating train network visualization for Station master. The UI should contain the overview of the entire network of railways.
+Reference Image: ![Control Panel](assets/Railway%20Network.jpg)
+- 
