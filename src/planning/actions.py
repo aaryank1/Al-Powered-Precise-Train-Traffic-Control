@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from models.train import Train
 
+    from src.railway.network import BlockKey
+
 
 class ActionType(str, Enum):
     """Allowed decisions that the scheduler can request for a train."""
@@ -29,7 +31,7 @@ class Action:
     target_station: int | None = None
     source_track: str | None = None
     target_track: str | None = None
-    block: tuple[int, int] | None = None
+    block: BlockKey | None = None
     reservations: tuple[str, ...] = field(default_factory=tuple)
     conflict: bool = False
 
@@ -56,7 +58,7 @@ def wait_action(train: Train, reason: str, conflict: bool = False) -> Action:
         reason=reason,
         source_station=train.current_station,
         target_station=train.current_station,
-        source_track=train.track,
-        target_track=train.track,
+        source_track=train.line,
+        target_track=train.line,
         conflict=conflict,
     )

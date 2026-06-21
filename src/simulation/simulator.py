@@ -198,9 +198,15 @@ class Simulator:
             return f"{action.train_name}: {source} -> {target}{suffix} ({action.reason})"
 
         if action.action_type == ActionType.ENTER_LOOP:
-            return f"{action.train_name}: {source} main -> loop ({action.reason})"
+            return (
+                f"{action.train_name}: {source} {action.source_track} -> "
+                f"{action.target_track} ({action.reason})"
+            )
 
         if action.action_type == ActionType.EXIT_LOOP:
-            return f"{action.train_name}: {source} loop -> main ({action.reason})"
+            return (
+                f"{action.train_name}: {source} {action.source_track} -> "
+                f"{action.target_track} ({action.reason})"
+            )
 
         return f"{action.train_name}: waiting at {source} ({action.reason})"

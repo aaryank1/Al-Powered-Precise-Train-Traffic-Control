@@ -22,10 +22,11 @@ class Train:
     loop_entries: int = 0
 
     def direction(self) -> int:
-        """Return the station-index direction toward the destination.
+        """Return the station-index step toward the destination.
 
         Returns:
             `1` for increasing station indexes, `-1` for decreasing indexes.
+            The network maps this step to the railway's UP or DOWN direction.
         """
 
         if self.destination_station > self.current_station:

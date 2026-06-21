@@ -7,23 +7,24 @@ track occupancy. The simulator is still intentionally small and discrete-tick ba
 but it now treats railway movement as allocation of scarce resources instead of
 just moving train indexes in a list.
 
-The current scenario is a single-track section:
+The current scenario is a directional double-line section:
 
 ```text
-Virar -- Bhayandar -- Borivali -- Andheri -- Bandra -- Dadar
-                         loop        loop
+UP:    Virar -> Bhayandar -> Borivali -> Andheri -> Bandra -> Dadar
+DOWN:  Virar <- Bhayandar <- Borivali <- Andheri <- Bandra <- Dadar
+                              loops       loops
 ```
 
 ## Core Concepts
 
 - A `tick` is one simulator decision cycle. During a tick, trains may wait, enter
   a loop, exit a loop, move across one block, or arrive at their destination.
-- A `Block` is the track between two adjacent stations. Only one train may reserve
-  a block in a tick.
-- A station has one `main` berth. Stations with `has_loop=True` also have one
-  `loop` berth.
+- A `Block` is one directional track between adjacent stations. UP and DOWN
+  blocks over the same station pair are independent physical resources.
+- Every station has `up_main` and `down_main`. Borivali and Andheri also have
+  independently represented `up_loop` and `down_loop` lines.
 - A `Train` is always at a station between ticks. It is either on the station
-  `main` line or in the `loop`.
+  main line for its direction or in that direction's loop.
 - An `Action` is an explicit scheduler decision: `MOVE`, `WAIT`, `ENTER_LOOP`,
   `EXIT_LOOP`, or `ARRIVE`.
 - `OccupancyState` validates safety. The scheduler and router can suggest actions,
@@ -33,7 +34,7 @@ Virar -- Bhayandar -- Borivali -- Andheri -- Bandra -- Dadar
 
 - `models/train.py` defines train state, including current station, destination,
   track, waiting time, completion time, and loop usage.
-- `models/station.py` defines station metadata, including loop availability.
+- `models/station.py` defines station metadata, including UP/DOWN loop availability.
 - `src/railway/network.py` defines `Network`, `Block`, and the default
   Virar-Dadar section.
 - `src/railway/occupancy.py` owns station berth occupancy and per-tick block
@@ -41,12 +42,12 @@ Virar -- Bhayandar -- Borivali -- Andheri -- Bandra -- Dadar
 - `src/planning/actions.py` defines action types and action payloads.
 - `src/planning/router.py` creates safe candidate actions for one train.
 - `src/planning/scheduler.py` chooses action order using priority, waiting time,
-  and crossing needs.
+  and directional overtaking needs.
 - `src/simulation/simulator.py` runs ticks, applies actions, records history, and
   reports metrics. It accepts `verbose=False` for clean automated test runs.
-- `scenarios/scenario_1.py` defines the express/local crossing example.
-- `tests/test_core_engine.py` checks safety, loop crossing, unresolved conflicts,
-  and metrics.
+- `scenarios/scenario_1.py` defines the mixed-direction overtaking example.
+- `tests/test_core_engine.py` checks directional safety, loop overtaking,
+  unresolved conflicts, and metrics.
 - `notebooks/simulation_walkthrough.ipynb` is an interactive walkthrough for
   inspecting tick-by-tick behavior.
 - `.gitignore` excludes Python bytecode caches and notebook checkpoints generated
@@ -67,8 +68,8 @@ The `src` folder is split by responsibility:
 ## Tick Flow
 
 1. The simulator rebuilds `OccupancyState` from unfinished trains.
-2. The scheduler looks for higher-priority trains blocked by lower-priority trains
-   at loop-capable stations.
+2. The scheduler looks for a higher-priority train following a lower-priority
+   train in the same direction at a loop-capable station.
 3. Lower-priority blockers are ordered first so they can enter the loop.
 4. Regular trains are ordered by priority, then waiting time, then name.
 5. `route()` returns the next safe action for each train against a working copy of
@@ -77,16 +78,16 @@ The `src` folder is split by responsibility:
    it.
 7. Metrics and history are stored for inspection.
 
-## Crossing Behavior
+## Directional Overtaking Behavior
 
-In `scenario_1`, `EXP1` starts at Virar and `LOC1` starts at Dadar. They meet near
-Borivali and Andheri. Since Andheri has a loop and `EXP1` has higher priority,
-`LOC1` enters the Andheri loop. `EXP1` then moves through the Andheri main line.
-After the main line clears, `LOC1` exits the loop and continues toward Virar.
+In `scenario_1`, `UP_EXP1` follows `UP_LOC1` toward Dadar while `DOWN_LOC1`
+travels independently toward Virar. At Borivali, the lower-priority UP local
+enters `up_loop`, allowing the UP express to use `up_main`. The local returns to
+`up_main` after the express clears it.
 
-The old unsafe behavior allowed this same pair to swap across the Borivali-Andheri
-block in opposite directions during the same tick. That is now blocked by resource
-reservation.
+An UP and a DOWN train may use parallel blocks between the same two stations in
+the same tick. Two UP trains, or two DOWN trains, cannot reserve the same
+directional block in one tick.
 
 ## Metrics
 
@@ -99,7 +100,7 @@ reservation.
 - `conflict_count`
 - `loop_usage`
 - Per-train status: `finished`, `waiting_time`, `completion_time`,
-  `current_station`, `track`, and `loop_entries`
+  `current_station`, `line`, and `loop_entries`
 
 ## How To Run
 
@@ -131,8 +132,9 @@ make routing richer:
 
 - Add variable travel times and dwell times.
 - Add headway windows.
-- Add platform capacity beyond one berth.
+- Add platform capacity beyond one line.
 - Add branching graph networks.
+- Add fast/slow directional corridors and explicit crossovers.
 - Add disruption inputs and re-routing.
 
 Once those deterministic tools are tested, they can become LangGraph tools such as

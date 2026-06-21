@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from models.train import Train
 from src.planning.actions import Action, ActionType, wait_action
-from src.railway.network import Network
-from src.railway.occupancy import LOOP, MAIN, OccupancyState
+from src.railway.network import BlockKey, Network
+from src.railway.occupancy import OccupancyState
 
 
 def _resource_names(
     network: Network,
-    block_key: tuple[int, int] | None,
+    block_key: BlockKey | None,
     target_station: int | None = None,
     target_track: str | None = None,
 ) -> tuple[str, ...]:
@@ -37,7 +37,8 @@ def _movement_conflict(train: Train, network: Network, occupancy_state: Occupanc
     if not network.is_valid_station(next_station):
         return False
 
-    occupant = occupancy_state.occupied_train(next_station, MAIN)
+    main_line = network.main_line_for(train)
+    occupant = occupancy_state.occupied_train(next_station, main_line)
     if occupant is not None and occupant != train.name:
         return True
 
@@ -48,7 +49,7 @@ def _movement_conflict(train: Train, network: Network, occupancy_state: Occupanc
         train.current_station,
         next_station,
     )
-    return not can_reserve and "opposite-direction" in reason
+    return not can_reserve
 
 
 def candidate_actions(
@@ -68,20 +69,23 @@ def candidate_actions(
     if train.finished:
         return [wait_action(train, "train already finished")]
 
-    if train.line == LOOP:
+    main_line = network.main_line_for(train)
+    loop_line = network.loop_line_for(train)
+
+    if train.line == loop_line:
         action = Action(
             train_name=train.name,
             action_type=ActionType.EXIT_LOOP,
-            reason="exit loop after crossing path is clear",
+            reason="exit directional loop after overtaking path is clear",
             source_station=train.current_station,
             target_station=train.current_station,
-            source_track=LOOP,
-            target_track=MAIN,
+            source_track=loop_line,
+            target_track=main_line,
             reservations=_resource_names(
                 network,
                 None,
                 train.current_station,
-                MAIN,
+                main_line,
             ),
         )
         can_apply, reason = occupancy_state.can_apply(action, train)
@@ -93,16 +97,16 @@ def candidate_actions(
         action = Action(
             train_name=train.name,
             action_type=ActionType.ENTER_LOOP,
-            reason=force_loop_reason or "enter loop to allow crossing",
+            reason=force_loop_reason or "enter directional loop to allow overtaking",
             source_station=train.current_station,
             target_station=train.current_station,
-            source_track=MAIN,
-            target_track=LOOP,
+            source_track=main_line,
+            target_track=loop_line,
             reservations=_resource_names(
                 network,
                 None,
                 train.current_station,
-                LOOP,
+                loop_line,
             ),
         )
         can_apply, reason = occupancy_state.can_apply(action, train)
@@ -127,10 +131,10 @@ def candidate_actions(
         reason=reason,
         source_station=train.current_station,
         target_station=next_station,
-        source_track=MAIN,
-        target_track=MAIN,
+        source_track=main_line,
+        target_track=main_line,
         block=block.key,
-        reservations=_resource_names(network, block.key, next_station, MAIN),
+        reservations=_resource_names(network, block.key, next_station, main_line),
     )
     can_apply, blocked_reason = occupancy_state.can_apply(action, train)
     if can_apply:

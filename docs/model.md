@@ -1,33 +1,30 @@
-# Model v1 : 
+# Model v2: Directional Double Line
 
-We have a single-track railway line:
+The controlled section contains six ordered stations:
 
-    Virar ---- Bhayandar ---- Borivali ---- Andheri ---- Bandra ---- Dadar
+```text
+UP:    Virar -> Bhayandar -> Borivali -> Andheri -> Bandra -> Dadar
+DOWN:  Virar <- Bhayandar <- Borivali <- Andheri <- Bandra <- Dadar
+```
 
-There is only one track.
+Every station has an `up_main` and `down_main`. Borivali and Andheri also have
+an `up_loop` and `down_loop`:
 
-| Station   | Platform Count |
-| --------- | -------------- |
-| Virar     | 1              |
-| Bhayandar | 1              |
-| Borivali  | 1              |
-| Andheri   | 1              |
-| Bandra    | 1              |
-| Dadar     | 1              |
+| Station | UP main | DOWN main | UP loop | DOWN loop |
+| --- | --- | --- | --- | --- |
+| Virar | yes | yes | no | no |
+| Bhayandar | yes | yes | no | no |
+| Borivali | yes | yes | yes | yes |
+| Andheri | yes | yes | yes | yes |
+| Bandra | yes | yes | no | no |
+| Dadar | yes | yes | no | no |
 
-## Loop Lines
+Opposing movements use separate directional blocks. Loops support overtaking by
+trains moving in the same direction. Train priorities remain:
 
-Without loop lines, trains coming in opposite directions would deadlock.
+```text
+EXPRESS (10) > FAST (5) > LOCAL (1)
+```
 
-So we introduce loops at: Borivali and Andheri
-
-    Virar ---- Bhayandar ---- Borivali ---- Andheri ---- Bandra ---- Dadar
-                                LOOP          LOOP
-
-## Train Types and Priority
-
-LOCAL = 1,
-FAST = 5,
-EXPRESS = 10
-
-EXPRESS > FAST > LOCAL
+See [network_lines.md](network_lines.md) for terminology, diagrams, limitations,
+and research sources.

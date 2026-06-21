@@ -26,16 +26,16 @@ What is a Block Section?
             [A-B] [B-C] [C-D]
         Each bracket is a block.
     Rule:
-        - Only ONE train can reserve a block in a tick.
-        - Two trains cannot swap across the same single-track block in opposite
-          directions during the same tick.
+        - Only ONE train can reserve a directional block in a tick.
+        - UP and DOWN blocks between the same stations are separate parallel
+          resources, so one train may use each at the same time.
 
 What is Occupancy?
     - Occupancy means which train currently owns a railway resource.
     - In this project the resources are:
-        station main berth,
-        station loop berth,
-        block reservation for the current tick.
+        UP and DOWN station main lines,
+        UP and DOWN station loop lines where configured,
+        directional block reservations for the current tick.
     - Safety starts by asking: is the resource free before the train uses it?
 
 What is a Loop Line?
@@ -59,10 +59,13 @@ What is a Crossing?
         Lower-priority train enters the loop.
         Higher-priority train passes on the main line.
         Lower-priority train exits the loop and continues.
+    - The current project is now a double-line section, so opposing trains use
+      separate UP and DOWN mains and do not need a loop to cross.
+    - Current loop behavior instead supports overtaking in the same direction.
 
 What is Headway?
     - Headway is the minimum safe spacing between trains.
-    - Current v1 does not yet model headway windows beyond one-block-per-tick
+    - Current v2 does not yet model headway windows beyond one-block-per-tick
       occupancy.
     - Future versions can model time gaps between consecutive trains using the
       same block.
@@ -83,22 +86,26 @@ What is a Conflict?
     - Examples:
         target station main line occupied,
         block already reserved,
-        no loop available for crossing.
+        no directional loop available for an overtake.
 
 What is a Control Chart ?
     - A manual chart that traffic controllers use to make real time decisions 
     - Distance stations are plotted on the Y-axis and Time (24 hours) is plotted on the X-axis. The trajectory of a train forms a diagonal line.
 
-Up main line, down main line,
-up loop line, down loop line
+UP and DOWN are designated railway directions, not compass directions.
+For this model, Virar -> Dadar is UP and Dadar -> Virar is DOWN.
+Every station has an UP main and DOWN main. Borivali and Andheri also have an
+UP loop and DOWN loop. See docs/network_lines.md for the full explanation.
 
-distant signal, home signal, starter signal, adv starter
-after crossing these signals, train enters a block section
+Distant signal, home signal, starter signal, advanced starter.
+The exact signal sequence depends on the station and signalling system; the
+advanced starter generally controls departure into the block section.
 
 switches 
 
 block instruments
 
-trains dont have gps, instead they have axle counters after every 3 or 4kms
-it counts axles and passes it to the next axle counter 
-it also sends the live location of the train
+Railway signalling does not depend on consumer-style GPS position. Track
+circuits or axle-counter sections detect whether a protected track section is
+occupied. An axle counter compares axle counts at section entry and exit to
+prove the section clear; it does not provide continuous GPS-like train location.

@@ -2,21 +2,25 @@ from models.train import Train
 
 
 def build_trains() -> list[Train]:
-    """
-    Create a scenario :
-    Create the default express/local crossing scenario.
-    """
+    """Create a mixed-direction scenario with one UP overtaking conflict."""
 
     return [
         Train(
-            name="EXP1",
+            name="UP_EXP1",
             train_type="EXPRESS",
             priority=10,
-            current_station=0,
+            current_station=1,
             destination_station=5,
         ),
         Train(
-            name="LOC1",
+            name="UP_LOC1",
+            train_type="LOCAL",
+            priority=1,
+            current_station=2,
+            destination_station=5,
+        ),
+        Train(
+            name="DOWN_LOC1",
             train_type="LOCAL",
             priority=1,
             current_station=5,

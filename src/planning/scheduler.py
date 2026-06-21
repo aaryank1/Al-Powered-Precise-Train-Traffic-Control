@@ -8,7 +8,7 @@ from src.railway.occupancy import OccupancyState
 
 
 class Scheduler:
-    """Priority scheduler that also creates loop-crossing opportunities."""
+    """Priority scheduler that also creates directional overtaking opportunities."""
 
     def decide_moves(
         self,
@@ -74,7 +74,7 @@ class Scheduler:
         network: Network,
         occupancy_state: OccupancyState,
     ) -> dict[str, str]:
-        """Find lower-priority trains that should enter loops for crossings.
+        """Find lower-priority trains that should enter loops for overtakes.
 
         Returns:
             A mapping from train name to the reason it should enter a loop.
@@ -87,14 +87,16 @@ class Scheduler:
         )
 
         for train in high_priority_order:
-            if train.line != "main":
+            main_line = network.main_line_for(train)
+            direction = network.direction_for(train)
+            if train.line != main_line:
                 continue
 
             next_station = network.next_station_for(train)
             if not network.is_valid_station(next_station):
                 continue
 
-            occupant_name = occupancy_state.occupied_train(next_station, "main")
+            occupant_name = occupancy_state.occupied_train(next_station, main_line)
             if occupant_name is None or occupant_name == train.name:
                 continue
 
@@ -104,18 +106,19 @@ class Scheduler:
 
             if blocker.priority >= train.priority:
                 continue
-            if blocker.line != "main":
+            if blocker.line != network.main_line_for(blocker):
                 continue
-            if blocker.direction() != -train.direction():
+            if blocker.direction() != train.direction():
                 continue
-            if not network.has_loop(next_station):
+            if not network.has_loop(next_station, direction):
                 continue
-            if not occupancy_state.is_line_empty(next_station, "loop"):
+            loop_line = network.loop_line_for(blocker)
+            if not occupancy_state.is_line_empty(next_station, loop_line):
                 continue
 
             forced[blocker.name] = (
-                f"enter loop at {network.station_name(next_station)} "
-                f"to allow {train.name} to cross"
+                f"enter {loop_line} at {network.station_name(next_station)} "
+                f"to allow {train.name} to overtake"
             )
 
         return forced
