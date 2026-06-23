@@ -38,6 +38,14 @@ engine.
   times.
 - Later evaluate overtaking using catch-up, delay, timetable precedence, and
   controller instructions instead of only immediate occupancy and priority.
-- Add explicit fast/slow corridors and crossover locations.
+- Add headway windows.
+- Add platform capacity beyond one line.
+- Add branching graph networks.
+- Add fast/slow directional corridors and explicit crossovers.
+- Add disruption inputs and re-routing.
 - Use Streamlit to visualize the network for a station master or section
   controller. Reference: ![Control Panel](assets/Railway%20Network.jpg)
+
+Once those deterministic tools are tested, they can become LangGraph tools such as
+`route_tool`, `simulate_scenario_tool`, `get_conflicts_tool`, and
+`explain_decision_tool`.
