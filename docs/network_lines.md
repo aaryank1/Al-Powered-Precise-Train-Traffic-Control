@@ -93,10 +93,10 @@ of those stations.
 
 ## Current Limits And Next Steps
 
-All trains still move one adjacent station per simulation tick. Consequently, a
-faster train does not gain on a slower one unless the scenario already places them
-close together. Realistic overtaking will require running times, station dwell,
-stopping patterns, and headway.
+Trains now occupy adjacent blocks for one or more 30-second ticks. SLOW and FAST
+use two ticks per block, while EXPRESS uses one; stop patterns add scheduled dwell.
+See [timing_model.md](timing_model.md) for the complete simplified timing model.
+Actual station distances, per-block speed limits, and headway remain future work.
 
 Mumbai's busiest corridors can also distinguish fast and slow running lines. That
 future model should add explicit tracks and crossovers rather than treating a

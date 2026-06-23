@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from models.train import Train
-from src.planning.actions import Action, ActionType, wait_action
+from src.planning.actions import Action, ActionType, dwell_action, wait_action
 from src.railway.network import BlockKey, Network
 from src.railway.occupancy import OccupancyState
 
@@ -68,11 +68,15 @@ def candidate_actions(
 
     if train.finished:
         return [wait_action(train, "train already finished")]
+    if train.is_in_transit:
+        return [wait_action(train, "train is already traversing a block")]
 
     main_line = network.main_line_for(train)
     loop_line = network.loop_line_for(train)
 
     if train.line == loop_line:
+        if train.dwell_remaining_ticks > 0:
+            return [dwell_action(train)]
         action = Action(
             train_name=train.name,
             action_type=ActionType.EXIT_LOOP,
@@ -114,21 +118,18 @@ def candidate_actions(
             return [action]
         return [wait_action(train, reason, conflict=True)]
 
+    if train.dwell_remaining_ticks > 0:
+        return [dwell_action(train)]
+
     next_station = network.next_station_for(train)
     if not network.is_valid_station(next_station):
         return [wait_action(train, "next station is outside the network", conflict=True)]
 
     block = network.block_between(train.current_station, next_station)
-    action_type = ActionType.ARRIVE if next_station == train.destination_station else ActionType.MOVE
-    reason = (
-        "move into destination and leave controlled section"
-        if action_type == ActionType.ARRIVE
-        else "advance toward destination"
-    )
     action = Action(
         train_name=train.name,
-        action_type=action_type,
-        reason=reason,
+        action_type=ActionType.MOVE,
+        reason=f"depart for {train.profile.running_ticks}-tick block traversal",
         source_station=train.current_station,
         target_station=next_station,
         source_track=main_line,

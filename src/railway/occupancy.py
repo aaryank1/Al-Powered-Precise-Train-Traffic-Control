@@ -18,13 +18,14 @@ from src.railway.network import (
 
 
 class OccupancyState:
-    """Current directional-line occupancy and per-tick block reservations."""
+    """Current station, arrival-line, and persistent block occupancy."""
 
     def __init__(self, network: Network) -> None:
         """Initialize empty line and block occupancy for a network."""
 
         self.network = network
         self.station_lines: dict[tuple[int, str], str | None] = {}
+        self.station_line_reservations: dict[tuple[int, str], str] = {}
         self.block_reservations: dict[BlockKey, str] = {}
         self.block_movements: dict[BlockKey, tuple[int, int, str]] = {}
 
@@ -45,7 +46,19 @@ class OccupancyState:
             if train.finished:
                 continue
             line = network.normalize_train_line(train)
-            state.occupy_line(train.current_station, line, train.name)
+            if train.is_in_transit:
+                if train.target_station is None:
+                    raise ValueError(f"{train.name} has incomplete transit state.")
+                block = network.block_between(train.current_station, train.target_station)
+                state.reserve_block(
+                    block.key,
+                    train.name,
+                    train.current_station,
+                    train.target_station,
+                )
+                state.reserve_line(train.target_station, line, train.name)
+            else:
+                state.occupy_line(train.current_station, line, train.name)
         return state
 
     def clone(self) -> OccupancyState:
@@ -53,6 +66,7 @@ class OccupancyState:
 
         cloned = OccupancyState(self.network)
         cloned.station_lines = deepcopy(self.station_lines)
+        cloned.station_line_reservations = deepcopy(self.station_line_reservations)
         cloned.block_reservations = deepcopy(self.block_reservations)
         cloned.block_movements = deepcopy(self.block_movements)
         return cloned
@@ -72,14 +86,35 @@ class OccupancyState:
 
         return self.occupied_train(station_index, line) is None
 
+    def reserved_for(self, station_index: int, line: str) -> str | None:
+        """Return the train holding an arrival reservation for a line."""
+
+        return self.station_line_reservations.get((station_index, line))
+
+    def is_line_available(self, station_index: int, line: str) -> bool:
+        """Return whether a line is neither occupied nor reserved."""
+
+        return self.is_line_empty(station_index, line) and self.reserved_for(
+            station_index, line
+        ) is None
+
     def occupy_line(self, station_index: int, line: str, train_name: str) -> None:
         """Mark a station line as occupied by a train."""
 
         if not self.line_exists(station_index, line):
             raise ValueError(f"{line} does not exist at station {station_index}.")
-        if not self.is_line_empty(station_index, line):
-            raise ValueError(f"{line} at station {station_index} is already occupied.")
+        if not self.is_line_available(station_index, line):
+            raise ValueError(f"{line} at station {station_index} is occupied or reserved.")
         self.station_lines[(station_index, line)] = train_name
+
+    def reserve_line(self, station_index: int, line: str, train_name: str) -> None:
+        """Reserve a destination line while a train traverses its block."""
+
+        if not self.line_exists(station_index, line):
+            raise ValueError(f"{line} does not exist at station {station_index}.")
+        if not self.is_line_available(station_index, line):
+            raise ValueError(f"{line} at station {station_index} is occupied or reserved.")
+        self.station_line_reservations[(station_index, line)] = train_name
 
     def release_line(self, station_index: int, line: str, train_name: str) -> None:
         """Release a line currently occupied by a train."""
@@ -129,6 +164,15 @@ class OccupancyState:
         if action.action_type == ActionType.WAIT:
             return True, "waits do not reserve resources"
 
+        if action.action_type == ActionType.DWELL:
+            if train.is_in_transit:
+                return False, "a train cannot dwell while in transit"
+            if train.dwell_remaining_ticks <= 0:
+                return False, "scheduled dwell is already complete"
+            if self.occupied_train(train.current_station, train.line) != train.name:
+                return False, "dwelling train does not occupy its station line"
+            return True, "scheduled dwell in progress"
+
         direction = self.network.direction_for(train)
         main_line = self.network.main_line_for(train)
         loop_line = self.network.loop_line_for(train)
@@ -140,7 +184,7 @@ class OccupancyState:
                 return False, f"loop entry must move from {main_line} to {loop_line}"
             if self.occupied_train(train.current_station, main_line) != train.name:
                 return False, f"train is not on {main_line}"
-            if not self.is_line_empty(train.current_station, loop_line):
+            if not self.is_line_available(train.current_station, loop_line):
                 return False, f"{loop_line} is already occupied"
             return True, f"{loop_line} available"
 
@@ -151,11 +195,11 @@ class OccupancyState:
                 return False, f"loop exit must move from {loop_line} to {main_line}"
             if self.occupied_train(train.current_station, loop_line) != train.name:
                 return False, f"train is not in {loop_line}"
-            if not self.is_line_empty(train.current_station, main_line):
+            if not self.is_line_available(train.current_station, main_line):
                 return False, f"{main_line} is occupied"
             return True, f"{main_line} available"
 
-        if action.action_type in {ActionType.MOVE, ActionType.ARRIVE}:
+        if action.action_type == ActionType.MOVE:
             if (
                 action.source_station is None
                 or action.target_station is None
@@ -177,9 +221,11 @@ class OccupancyState:
                 return False, f"movement must reserve directional block {expected_block}"
             if self.occupied_train(action.source_station, main_line) != train.name:
                 return False, f"train must start movement from {main_line}"
-            if not self.is_line_empty(action.target_station, main_line):
+            if not self.is_line_available(action.target_station, main_line):
                 occupant = self.occupied_train(action.target_station, main_line)
-                return False, f"target station {main_line} occupied by {occupant}"
+                reserver = self.reserved_for(action.target_station, main_line)
+                blocker = occupant or reserver
+                return False, f"target station {main_line} occupied or reserved by {blocker}"
             can_reserve, reason = self.can_reserve_block(
                 action.block,
                 train.name,
@@ -210,6 +256,11 @@ class OccupancyState:
                 train.waiting_time += 1
             return
 
+        if action.action_type == ActionType.DWELL:
+            if mutate_train:
+                train.dwell_remaining_ticks -= 1
+            return
+
         main_line = self.network.main_line_for(train)
         loop_line = self.network.loop_line_for(train)
 
@@ -219,6 +270,8 @@ class OccupancyState:
             if mutate_train:
                 train.line = loop_line
                 train.loop_entries += 1
+                if train.dwell_remaining_ticks > 0:
+                    train.dwell_remaining_ticks -= 1
             return
 
         if action.action_type == ActionType.EXIT_LOOP:
@@ -228,20 +281,17 @@ class OccupancyState:
                 train.line = main_line
             return
 
-        if action.action_type in {ActionType.MOVE, ActionType.ARRIVE}:
+        if action.action_type == ActionType.MOVE:
             if action.source_station is None or action.target_station is None or action.block is None:
                 raise ValueError("movement action is missing source, target, or block")
 
             self.release_line(action.source_station, main_line, train.name)
             self.reserve_block(action.block, train.name, action.source_station, action.target_station)
-            self.occupy_line(action.target_station, main_line, train.name)
+            self.reserve_line(action.target_station, main_line, train.name)
 
             if mutate_train:
-                train.current_station = action.target_station
                 train.line = main_line
-                if action.action_type == ActionType.ARRIVE:
-                    train.finished = True
-                    train.completion_time = current_time + 1
+                train.begin_movement(action.target_station)
 
     def snapshot(self) -> dict[str, object]:
         """Return a serializable view of line and block occupancy."""
@@ -262,4 +312,5 @@ class OccupancyState:
         return {
             "stations": stations,
             "blocks": dict(self.block_reservations),
+            "line_reservations": dict(self.station_line_reservations),
         }

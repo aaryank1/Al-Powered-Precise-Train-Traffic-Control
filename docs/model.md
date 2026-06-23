@@ -23,8 +23,9 @@ Opposing movements use separate directional blocks. Loops support overtaking by
 trains moving in the same direction. Train priorities remain:
 
 ```text
-EXPRESS (10) > FAST (5) > LOCAL (1)
+EXPRESS (10) > FAST (5) > SLOW (1)
 ```
 
 See [network_lines.md](network_lines.md) for terminology, diagrams, limitations,
-and research sources.
+and research sources. See [timing_model.md](timing_model.md) for running and dwell
+times, stop patterns, and the movement lifecycle.

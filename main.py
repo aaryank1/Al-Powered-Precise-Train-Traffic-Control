@@ -25,12 +25,15 @@ def main() -> None:
     for train_name, train_metrics in metrics["trains"].items():
         print(
             f"{train_name}: "
+            f"type={train_metrics['train_type']}, "
             f"finished={train_metrics['finished']}, "
-            f"waiting_time={train_metrics['waiting_time']}, "
-            f"completion_time={train_metrics['completion_time']}, "
+            f"waiting={train_metrics['waiting_seconds']}s, "
+            f"completion={train_metrics['completion_time_seconds']}s, "
             f"loop_entries={train_metrics['loop_entries']}"
         )
     print(f"total_ticks={metrics['total_ticks']}")
+    print(f"tick_seconds={metrics['tick_seconds']}")
+    print(f"total_time_seconds={metrics['total_time_seconds']}")
     print(f"conflict_count={metrics['conflict_count']}")
     print(f"loop_usage={metrics['loop_usage']}")
 

@@ -9,6 +9,8 @@ loop-line overtaking behavior.
 - Read `docs/documentation.md` for how the current engine works.
 - Read `docs/network_lines.md` for UP/DOWN terminology, the implemented topology,
   and research sources.
+- Read `docs/timing_model.md` for tick duration, train types, stop patterns, and
+  current timing assumptions.
 - Create the local environment with `python -m venv .venv`, then install
   dependencies with `.venv\Scripts\python -m pip install -r requirements.txt`.
 - Run `python main.py` to execute the default mixed-direction overtaking scenario.
@@ -21,6 +23,8 @@ The project now models:
 
 - directional UP/DOWN block occupancy,
 - UP/DOWN station main and loop lines,
+- persistent multi-tick block traversal and arrival-line reservations,
+- SLOW, FAST, and EXPRESS profiles with scheduled-stop dwell,
 - safe action validation,
 - priority-based loop overtaking,
 - per-train and simulator metrics.
@@ -30,13 +34,10 @@ engine.
 
 ## To Do
 
-- Add running and dwell times so fast trains can catch slower trains naturally : 
-  - Change later implementation so overtaking requires an explicit reason, such as:
-faster running time
-different stopping pattern
-timetable precedence
-predicted conflict/delay
-manual controller instruction, as currently the reason for overtake in scenario1 is that express's immediate route is occupied so it forces an overatake.
+- Replace uniform block times with actual station distances and per-block running
+  times.
+- Later evaluate overtaking using catch-up, delay, timetable precedence, and
+  controller instructions instead of only immediate occupancy and priority.
 - Add explicit fast/slow corridors and crossover locations.
-- Use Streamlit for creating train network visualization for Station master. The UI should contain the overview of the entire network of railways.
-Reference Image: ![Control Panel](assets/Railway%20Network.jpg)
+- Use Streamlit to visualize the network for a station master or section
+  controller. Reference: ![Control Panel](assets/Railway%20Network.jpg)

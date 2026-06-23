@@ -17,6 +17,7 @@ class ActionType(str, Enum):
     WAIT = "WAIT"
     ENTER_LOOP = "ENTER_LOOP"
     EXIT_LOOP = "EXIT_LOOP"
+    DWELL = "DWELL"
     ARRIVE = "ARRIVE"
 
 
@@ -61,4 +62,18 @@ def wait_action(train: Train, reason: str, conflict: bool = False) -> Action:
         source_track=train.line,
         target_track=train.line,
         conflict=conflict,
+    )
+
+
+def dwell_action(train: Train) -> Action:
+    """Build a scheduled station-dwell action that is not a conflict wait."""
+
+    return Action(
+        train_name=train.name,
+        action_type=ActionType.DWELL,
+        reason=f"scheduled stop dwell ({train.dwell_remaining_ticks} tick remaining)",
+        source_station=train.current_station,
+        target_station=train.current_station,
+        source_track=train.line,
+        target_track=train.line,
     )

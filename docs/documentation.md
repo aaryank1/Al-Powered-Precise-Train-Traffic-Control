@@ -17,28 +17,28 @@ DOWN:  Virar <- Bhayandar <- Borivali <- Andheri <- Bandra <- Dadar
 
 ## Core Concepts
 
-- A `tick` is one simulator decision cycle. During a tick, trains may wait, enter
-  a loop, exit a loop, move across one block, or arrive at their destination.
+- A `tick` is 30 simulated seconds. During a tick, trains may wait, dwell, enter
+  or exit a loop, depart into a block, continue travelling, or arrive.
 - A `Block` is one directional track between adjacent stations. UP and DOWN
   blocks over the same station pair are independent physical resources.
 - Every station has `up_main` and `down_main`. Borivali and Andheri also have
   independently represented `up_loop` and `down_loop` lines.
-- A `Train` is always at a station between ticks. It is either on the station
-  main line for its direction or in that direction's loop.
-- An `Action` is an explicit scheduler decision: `MOVE`, `WAIT`, `ENTER_LOOP`,
-  `EXIT_LOOP`, or `ARRIVE`.
+- A `Train` may be at a station or `IN_TRANSIT`. In-transit trains reserve their
+  directional block and destination line until arrival.
+- An `Action` is an explicit event or scheduler decision: `MOVE`, `WAIT`,
+  `DWELL`, `ENTER_LOOP`, `EXIT_LOOP`, or `ARRIVE`.
 - `OccupancyState` validates safety. The scheduler and router can suggest actions,
   but unsafe actions are converted to safe waits by the simulator.
 
 ## Repository Structure
 
-- `models/train.py` defines train state, including current station, destination,
-  track, waiting time, completion time, and loop usage.
+- `models/train.py` defines SLOW, FAST, and EXPRESS timing profiles, stop
+  patterns, transit state, waiting, completion time, and loop usage.
 - `models/station.py` defines station metadata, including UP/DOWN loop availability.
 - `src/railway/network.py` defines `Network`, `Block`, and the default
   Virar-Dadar section.
-- `src/railway/occupancy.py` owns station berth occupancy and per-tick block
-  reservations.
+- `src/railway/occupancy.py` owns station-line occupancy, persistent directional
+  block reservations, and destination-line reservations.
 - `src/planning/actions.py` defines action types and action payloads.
 - `src/planning/router.py` creates safe candidate actions for one train.
 - `src/planning/scheduler.py` chooses action order using priority, waiting time,
@@ -50,6 +50,7 @@ DOWN:  Virar <- Bhayandar <- Borivali <- Andheri <- Bandra <- Dadar
   unresolved conflicts, and metrics.
 - `notebooks/simulation_walkthrough.ipynb` is an interactive walkthrough for
   inspecting tick-by-tick behavior.
+- `docs/timing_model.md` documents timing assumptions and train profiles.
 - `.gitignore` excludes Python bytecode caches and notebook checkpoints generated
   while running tests or notebooks.
 - `requirements.txt` lists the notebook-related third-party packages. The core
@@ -67,40 +68,43 @@ The `src` folder is split by responsibility:
 
 ## Tick Flow
 
-1. The simulator rebuilds `OccupancyState` from unfinished trains.
-2. The scheduler looks for a higher-priority train following a lower-priority
+1. The simulator rebuilds occupancy from station trains and active traversals.
+2. In-transit trains retain their block and destination-line reservations.
+3. The scheduler looks for a higher-priority train following a lower-priority
    train in the same direction at a loop-capable station.
-3. Lower-priority blockers are ordered first so they can enter the loop.
-4. Regular trains are ordered by priority, then waiting time, then name.
-5. `route()` returns the next safe action for each train against a working copy of
+4. Lower-priority blockers are ordered first so they can enter the loop.
+5. Regular station trains are ordered by priority, waiting time, then name.
+6. `route()` returns the next safe action for each train against a working copy of
    occupancy.
-6. The simulator validates each action against the real occupancy state and applies
-   it.
-7. Metrics and history are stored for inspection.
+7. A departure releases the source line and reserves the block and arrival line.
+8. Every in-transit train advances one tick; completed traversals produce ARRIVE.
+9. Scheduled stops receive a dwell counter; skipped stations do not.
+10. Occupancy, metrics, history, and elapsed seconds are stored for inspection.
 
 ## Directional Overtaking Behavior
 
-In `scenario_1`, `UP_EXP1` follows `UP_LOC1` toward Dadar while `DOWN_LOC1`
-travels independently toward Virar. At Borivali, the lower-priority UP local
-enters `up_loop`, allowing the UP express to use `up_main`. The local returns to
-`up_main` after the express clears it.
+In `scenario_1`, `UP_EXP1` starts behind `UP_SLOW1` toward Dadar while
+`DOWN_FAST1` travels independently toward Virar. Locals take two ticks per block
+and the express takes one, so the express catches the slow at Borivali. The slow
+enters `up_loop`, allowing the express to use `up_main`, then returns after the
+express clears it.
 
-An UP and a DOWN train may use parallel blocks between the same two stations in
-the same tick. Two UP trains, or two DOWN trains, cannot reserve the same
-directional block in one tick.
+An UP and a DOWN train may occupy parallel blocks between the same stations.
+Two trains cannot hold the same directional block at once, even across ticks.
 
 ## Metrics
 
 `Simulator.get_metrics()` returns:
 
 - `total_ticks`
+- `tick_seconds` and `total_time_seconds`
 - `arrived_trains`
 - `active_trains`
-- `throughput`
+- `throughput` and `throughput_per_hour`
 - `conflict_count`
 - `loop_usage`
-- Per-train status: `finished`, `waiting_time`, `completion_time`,
-  `current_station`, `line`, and `loop_entries`
+- Per-train status, type, source/target station, travel and dwell counters,
+  waiting/completion values in ticks and seconds, line, and loop entries.
 
 ## How To Run
 
@@ -130,7 +134,7 @@ Launch Jupyter from the same environment, then open
 The right next step after this engine is stable is not an LLM agent yet. First,
 make routing richer:
 
-- Add variable travel times and dwell times.
+- Replace uniform profile times with actual per-block running times.
 - Add headway windows.
 - Add platform capacity beyond one line.
 - Add branching graph networks.

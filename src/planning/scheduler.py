@@ -22,7 +22,11 @@ class Scheduler:
             A list of proposed `Action` objects in application order.
         """
 
-        active = [train for train in trains if not train.finished]
+        active = []
+        for train in trains:
+            if not train.finished and not train.is_in_transit:
+                active.append(train)
+                
         active_by_name = {train.name: train for train in active}
         forced_loop_reasons = self._forced_loop_reasons(active, active_by_name, network, occupancy_state)
         working_state = occupancy_state.clone()
@@ -87,6 +91,8 @@ class Scheduler:
         )
 
         for train in high_priority_order:
+            if train.dwell_remaining_ticks > 0:
+                continue
             main_line = network.main_line_for(train)
             direction = network.direction_for(train)
             if train.line != main_line:
@@ -113,7 +119,7 @@ class Scheduler:
             if not network.has_loop(next_station, direction):
                 continue
             loop_line = network.loop_line_for(blocker)
-            if not occupancy_state.is_line_empty(next_station, loop_line):
+            if not occupancy_state.is_line_available(next_station, loop_line):
                 continue
 
             forced[blocker.name] = (
