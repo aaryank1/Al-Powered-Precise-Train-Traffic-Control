@@ -56,7 +56,7 @@ def wait_action(train: Train, reason: str, conflict: bool = False) -> Action:
         reason=reason,
         source_station=train.current_station,
         target_station=train.current_station,
-        source_track=train.track,
-        target_track=train.track,
+        source_track=train.line,
+        target_track=train.line,
         conflict=conflict,
     )

@@ -98,6 +98,11 @@ class OccupancyState:
             raise ValueError(f"{line} line at station {station_index} is already occupied.")
         self.station_lines[(station_index, line)] = train_name
 
+    def occupy_berth(self, station_index: int, line: str, train_name: str) -> None:
+        """Compatibility alias for marking a station berth as occupied."""
+
+        self.occupy_line(station_index, line, train_name)
+
     def release_lines(self, station_index: int, line: str, train_name: str) -> None:
         """Release a line currently occupied by a train.
 
@@ -111,6 +116,11 @@ class OccupancyState:
         if self.occupied_train(station_index, line) != train_name:
             raise ValueError(f"{train_name} does not occupy {line} at station {station_index}.")
         self.station_lines[(station_index, line)] = None
+
+    def release_berth(self, station_index: int, line: str, train_name: str) -> None:
+        """Compatibility alias for releasing a station berth."""
+
+        self.release_lines(station_index, line, train_name)
 
     def can_reserve_block(
         self,

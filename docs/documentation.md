@@ -51,8 +51,10 @@ Virar -- Bhayandar -- Borivali -- Andheri -- Bandra -- Dadar
   inspecting tick-by-tick behavior.
 - `.gitignore` excludes Python bytecode caches and notebook checkpoints generated
   while running tests or notebooks.
-- `requirements.txt` lists the notebook-related third-party packages. The core
-  simulator and test suite use only the Python standard library.
+- `requirements.txt` lists the notebook and Streamlit visualization packages.
+  The core simulator and test suite use only the Python standard library.
+- `streamlit_app.py` renders the default scenario as a tick-by-tick network
+  visualization with station, loop, block reservation, action, and metrics views.
 - Every function and method has a return annotation plus a docstring with a
   `Returns:` note, so IDEs and readers can quickly see expected outputs.
 
@@ -135,6 +137,6 @@ make routing richer:
 - Add branching graph networks.
 - Add disruption inputs and re-routing.
 
-Once those deterministic tools are tested, they can become LangGraph tools such as
-`route_tool`, `simulate_scenario_tool`, `get_conflicts_tool`, and
-`explain_decision_tool`.
+Once those deterministic tools are tested, they can become dashboard controls and
+LangGraph tools such as `route_tool`, `simulate_scenario_tool`,
+`get_conflicts_tool`, and `explain_decision_tool`.
